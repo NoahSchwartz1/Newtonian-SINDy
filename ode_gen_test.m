@@ -7,7 +7,7 @@ newtonian_gravity(0,x)
 % plot3(y.y(4,:),y.y(5,:),y.y(6,:),Color='b');
 
 x = [0,0,0,1,1,1,2,2,0,0.25,0,0,0,0,0,0,1,0];
-y = ode23s(@newtonian_gravity,[1,10],x)
+y = ode15s(@newtonian_gravity,[1,10],x);
 figure; hold on; grid on;
 plot3(y.y(1,:),y.y(2,:),y.y(3,:),Color='r');
 plot3(y.y(4,:),y.y(5,:),y.y(6,:),Color='b');
