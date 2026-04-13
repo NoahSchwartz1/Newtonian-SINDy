@@ -9,12 +9,12 @@ PARAMETERS cell of each notebook.
 | File | Purpose |
 |------|---------|
 | `01_SINDy.ipynb` | Standard SINDy via PySINDy (STLSQ) |
-| `02_WSINDy.ipynb` | Weak-form SINDy (no pointwise derivatives) |
-| `03_GSSINDy.ipynb` | Group-Sparse SINDy (multiple trajectories jointly) |
+| `02_WSINDy.ipynb` | Weak form SINDy (no pointwise derivatives) |
+| `03_GSSINDy.ipynb` | Group Sparse (GS) SINDy (multiple trajectories jointly) |
 | `00_Main_Comparison.ipynb` | Runs all three, unified plots and noise sweep |
 | `ode_systems.py` | ODE catalogue — **add new systems here** |
 | `ode_utils.py` | Shared helpers: data generation, metrics, plotting |
-| `wsindy_core.py` | WSINDy implementation (port of MathBioCU/PyWSINDy_ODE) |
+| `wsindy_core.py` | WSINDy implementation (MathBioCU/PyWSINDy_ODE) |
 
 ## Requirements
 
