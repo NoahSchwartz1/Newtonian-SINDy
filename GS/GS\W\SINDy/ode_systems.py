@@ -269,8 +269,6 @@ LORENZ = ODESystem(
 
 SYSTEMS: Dict[str, ODESystem] = {
     "lorenz":            LORENZ,
-    "two_body_planar":   TWO_BODY_PLANAR,
-    "three_body_planar": THREE_BODY_PLANAR,
     # Add further systems here as needed.
 }
 
