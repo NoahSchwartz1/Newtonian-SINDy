@@ -24,14 +24,16 @@ GS-SINDy also needs the repo cloned next to the notebooks:
 
     git clone https://github.com/lindliu/GS-SINDy
 
-If absent, the notebook falls back to per-trajectory PySINDy.
+If absent, the notebook falls back to a vairant of PySINDy.
 
 ## Run order
 
     01_SINDy  →  02_WSINDy  →  03_GSSINDy  →  00_Main_Comparison
+    or 00_Main_Comparison
 
 The main notebook refits everything inline when RUN_INLINE = True,
-or loads pre-saved .pkl files when RUN_INLINE = False.
+or loads pre-saved .pkl files when RUN_INLINE = False. 
+01, 02 and 03 Scripts generatre .pkl files automatically.
 
 ## Switching systems
 
@@ -42,6 +44,7 @@ In every notebook the first USER PARAMETERS cell has:
     X0         = [-8.0, 8.0, 27.0]   # must match SYSTEM.n_dim
 
 Change SYSTEM_KEY and X0 to use a different system.
+Add an ODESystem object to use a new system.
 
 ## Adding a new system
 
