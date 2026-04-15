@@ -24,3 +24,5 @@ figure; hold on; grid on;
 for i=1:length(traj)
     plot3(traj(i).x(1,:),traj(i).x(2,:),traj(i).x(3,:));
 end
+
+save("traj.mat","traj");
