@@ -30,12 +30,35 @@ save("traj.mat","traj");
 
 %%
 
-traj_3body = get_newtonian_trajectories(...
-    [0,0,0; 1 1 1; 2 0 2]',...
-    [0,0,0; 0 0 0; 1 1 0]',...
-    [1,1,3]);
+
 figure; hold on; grid on;
 for i=1:length(traj)
     plot3(traj(i).x(1,:),traj(i).x(2,:),traj(i).x(3,:));
 end
 save("3body.mat","traj_3body")
+
+%%
+
+figure; hold on; grid on;
+traj_3body = get_newtonian_trajectories(...
+    [0,0,0; 1 -1 1; 2 0 2]',...
+    [0,0,0; 1 0 0; 1 1 0]',...
+    [1,2,3], ...
+    "uniformGridSpacing",true, ...
+    "tResolution",0.001);
+save("3body.mat","traj_3body")
+
+for i=1:length(traj_3body)
+    plot3( ...
+        traj_3body(i).x(1,:), ...
+        traj_3body(i).x(2,:), ...
+        traj_3body(i).x(3,:));
+end
+for i=1:length(traj_3body)
+    figure; hold on; grid on;
+    plot(traj_3body(1).t,traj_3body(i).x(1,:))
+    plot(traj_3body(1).t,traj_3body(i).x(2,:))
+    plot(traj_3body(1).t,traj_3body(i).x(3,:))
+end
+
+    

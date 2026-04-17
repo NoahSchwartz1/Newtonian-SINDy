@@ -6,6 +6,8 @@ arguments (Input)
     v_init
     masses
     options.tmax = 10
+    options.uniformGridSpacing = true
+    options.tResolution = 0.01
 end
 
 arguments (Output)
@@ -23,12 +25,17 @@ f = @(t,x) ([...
         reshape(x(1:3*N),[3,N]),masses),3*N,1)...
     ]);
 
-odesolve = ode15s(f,[0,options.tmax],[x_init(:),v_init(:)]);
+if options.uniformGridSpacing
+    tVals = 0:options.tResolution:options.tmax;
+    [t,x] = ode15s(f,tVals,[x_init(:),v_init(:)]);
+else
+    [t,x] = ode15s(f,[0,options.tmax],[x_init(:),v_init(:)]);
+end
 
 % Build out the trajectories struct in a useful format
 for i=1:N
-    trajectories(i).t = odesolve.x;
+    trajectories(i).t = t;
     trajectories(i).x = zeros(6,length(trajectories(i).t));
-    trajectories(i).x(1:3,:) = odesolve.y((3*i)-2:(3*i),:);
-    trajectories(i).x(4:6,:) = odesolve.y((3*(i+N))-2:(3*(i+N)),:);
+    trajectories(i).x(1:3,:) = x(:,(3*i)-2:(3*i))';
+    trajectories(i).x(4:6,:) = x(:,(3*(i+N))-2:(3*(i+N)))';
 end
