@@ -12,7 +12,7 @@ def run_centralforce_sindy(trajectory_filename):
     u = build_u_matrix(x,0)
 
     for i in range(nTraj):
-        run_sindy(x,t,i)
+        # run_sindy(x,t,i)
         run_sindy_merge_xyz(x,t,i)
 
 # Unpacks MATLAB data from a .mat file
@@ -112,6 +112,10 @@ def run_sindy(x,t,body_idx):
             u=u
         )
         model.print()
+        print(model.score(
+            x[:,(3*body_idx)+i],
+            t=t,
+            u=u))
 
 
 # Builds a u-matrix of the form (r_ij, [x_ij,y_iij,z_ij])
@@ -175,9 +179,16 @@ def run_sindy_merge_xyz(x,t,body_idx):
     )
     
     # Create and fit the model
+    # optimizer = ps.optimizers.MIOSR(3)
+    # optimizer = ps.optimizers.STLSQ(alpha=0.005*x.shape[0],
+    #                                 threshold=0.1,
+    #                                 normalize_columns=False,
+    #                                 verbose=True
+    # )
+    optimizer = ps.optimizers.STLSQ()
     model = ps.SINDy(
         feature_library=lib,
-        optimizer=ps.optimizers.STLSQ(alpha=0.05),
+        optimizer=optimizer,
         differentiation_method=ps.differentiation.FiniteDifference(),
     )
     model.fit(
@@ -187,5 +198,10 @@ def run_sindy_merge_xyz(x,t,body_idx):
         x_dot=a_merged
     )
     model.print()
+    print(model.score(
+        x_merged,
+        t=abs(t[1]-t[0]),
+        u=u_merged,
+        x_dot=a_merged))
 
     
