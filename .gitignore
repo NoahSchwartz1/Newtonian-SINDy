@@ -2,3 +2,4 @@
 .DS_Store
 GS/GS\\W\\SINDy/results/*
 GS/GS\\W\\SINDy/__pycache__/
+*.pickle
