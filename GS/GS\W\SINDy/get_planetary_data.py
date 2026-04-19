@@ -64,9 +64,10 @@ def extract_planetary_data(planetName,nYears,tRes):
         arr = np.concatenate([arr,planet_positions[i].value[np.newaxis,:]],axis=0)
     return arr
 
-def extract_multiplanetary_data(nYears, tRes, doPickle, pickleFilename=None):
-    # Only keep the relevant set of planets
-    planets = ["sun","mercury","earth","jupiter"]
+def extract_multiplanetary_data(nYears, tRes, 
+                                doPickle=True,
+                                pickleFilename=None,
+                                planets=["sun","mercury","venus","earth","mars","jupiter","saturn"]):
 
     # Extract data for each planet and combine into a single array
     pos = np.array([]).reshape(nYears * round(1/tRes),0)

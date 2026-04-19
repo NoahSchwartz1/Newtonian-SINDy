@@ -1,19 +1,46 @@
 import numpy as np
 import pysindy as ps
 import scipy as sp
+import pickle
 
-def run_centralforce_sindy(trajectory_filename):
+def run_centralforce_sindy(trajectory_filename,
+                           fileFormat="matlab",
+                           excludeCols=[],
+                           doMerged=True,
+                           doUnmerged=False,
+                           maxPolynomialOrder=2,
+                           minPolynomialOrder=2):
+    
+    """
+    trajectory_filename: the name of the data file to parse
+    fileFormat: whether it is a .mat or a .pickle file
+    excludeCols: an array of columns / trajectories to exclude (i.e. exclude Saturn data)
+    doMerged: run SINDy while merging the xyz components of each vector equation, to find shared coefficients
+    doUnmerged: run SINDy on each component of each vector equation invididually
+    maxPolynomialOrder: the maximum power of 1/r_ij to include in library; defaults to 2 (the correct value)
+    minPolynomialOrder: the minimum power of 1/r_ij to include in library; defaults to 2 (the correct value)
+    """
+    
     # Unpack the dataset into a convenient format
-    nTraj,t,x = unpack_matlab_data(trajectory_filename)
+    if fileFormat=="matlab":
+        nTraj,t,x = unpack_matlab_data(trajectory_filename)
+    elif fileFormat=="pickle":
+        nTraj,t,x = unpack_pickle_data(trajectory_filename)
+    else:
+        return
+    
+    if len(excludeCols)>0:
+        drop_cols = []
+        for i in excludeCols:
+            drop_cols = drop_cols + [(3*i + j) for j in range(3)]
+        print(drop_cols)
+        x = np.delete(x,drop_cols,axis=1)
 
-    # print(t.shape)
-
-    # Builds the "control"
-    u = build_u_matrix(x,0)
-
-    for i in range(nTraj):
-        # run_sindy(x,t,i)
-        run_sindy_merge_xyz(x,t,i)
+    for i in range(nTraj-len(excludeCols)):
+        if doMerged:
+            run_sindy_merge_xyz(x,t,i)
+        if doUnmerged:
+            run_sindy(x,t,i)
 
 # Unpacks MATLAB data from a .mat file
 def unpack_matlab_data(trajectory_filename):
@@ -34,6 +61,17 @@ def unpack_matlab_data(trajectory_filename):
     # Return the unpacked data
     return nTraj,t,x
 
+def unpack_pickle_data(trajectory_filename):
+    # Unpickles the variable
+    with open(trajectory_filename,'rb') as f:
+        data = pickle.load(f)
+    
+    # Invents a time-series and returns the dataset
+    x = data
+    t = np.array([i/data.shape[0] for i in range(data.shape[0])],dtype=float)
+    nTraj = round(data.shape[1]/3)
+    return nTraj,t,x
+
 # Builds the "control" matrix (r_ij, xhat_ij, yhat_ij, zhat_ij) for a single i
 def build_u_matrix(x,body_idx):
 
@@ -50,7 +88,10 @@ def build_u_matrix(x,body_idx):
         delta = x[:,3*body_idx:3*(body_idx+1)]-x[:,3*i:3*(i+1)]
         r = np.linalg.norm(delta,axis=1)[:,np.newaxis]
         r_inv = np.pow(r,-1)
-        hat = delta * r_inv
+
+        # FORCING US TO HAVE AT LEAST ONE POWER OF R -->> DELETE LATER!!
+        # hat = delta * r_inv
+        hat = delta * (r_inv * r_inv)
 
         u = np.concatenate([u,r_inv,hat],axis=1)
     
@@ -148,7 +189,9 @@ def compute_merged_second_derivative(x,t,body_idx):
 # we can concatenate the data, the u-matrix, and the manually
 # computed second derivative and run SINDy on all of them simulataneously
 # *** REQUIRES UNIFORMLY SPACED DATA ***
-def run_sindy_merge_xyz(x,t,body_idx):
+def run_sindy_merge_xyz(x,t,body_idx,
+                        maxPolynomialOrder=2,
+                        minPolynomialOrder=2):
     
     # Merge the xyz components into a single vector
     x_merged = np.ravel(x[:,3*body_idx:3*(body_idx+1)],'F')
@@ -158,7 +201,7 @@ def run_sindy_merge_xyz(x,t,body_idx):
 
     # Build a library involving vector hats and inverse powers of r
     poly_lib = ps.PolynomialLibrary(
-        degree=2,
+        degree=1,
         include_bias=False)
     vectorHat_lib = ps.IdentityLibrary()
     tensorProd_lib = ps.TensoredLibrary(
@@ -185,7 +228,7 @@ def run_sindy_merge_xyz(x,t,body_idx):
     #                                 normalize_columns=False,
     #                                 verbose=True
     # )
-    optimizer = ps.optimizers.STLSQ()
+    optimizer = ps.optimizers.STLSQ(alpha=0,threshold=0,verbose=True)
     model = ps.SINDy(
         feature_library=lib,
         optimizer=optimizer,
