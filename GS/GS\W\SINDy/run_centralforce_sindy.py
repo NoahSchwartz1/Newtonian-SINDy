@@ -38,9 +38,13 @@ def run_centralforce_sindy(trajectory_filename,
 
     for i in range(nTraj-len(excludeCols)):
         if doMerged:
-            run_sindy_merge_xyz(x,t,i)
+            run_sindy_merge_xyz(x,t,i,
+                                minPolynomialOrder=minPolynomialOrder,
+                                maxPolynomialOrder=maxPolynomialOrder)
         if doUnmerged:
-            run_sindy(x,t,i)
+            run_sindy(x,t,i,
+                      minPolynomialOrder=minPolynomialOrder,
+                      maxPolynomialOrder=maxPolynomialOrder)
 
 # Unpacks MATLAB data from a .mat file
 def unpack_matlab_data(trajectory_filename):
@@ -73,7 +77,8 @@ def unpack_pickle_data(trajectory_filename):
     return nTraj,t,x
 
 # Builds the "control" matrix (r_ij, xhat_ij, yhat_ij, zhat_ij) for a single i
-def build_u_matrix(x,body_idx):
+def build_u_matrix(x,body_idx,
+                   minPolynomialOrder=0):
 
     u = np.array([]).reshape(x.shape[0],0)
     nTraj = round(x.shape[1]/3)
@@ -88,21 +93,20 @@ def build_u_matrix(x,body_idx):
         delta = x[:,3*body_idx:3*(body_idx+1)]-x[:,3*i:3*(i+1)]
         r = np.linalg.norm(delta,axis=1)[:,np.newaxis]
         r_inv = np.pow(r,-1)
-
-        # FORCING US TO HAVE AT LEAST ONE POWER OF R -->> DELETE LATER!!
-        # hat = delta * r_inv
-        hat = delta * (r_inv * r_inv)
+        hat = delta * np.pow(r_inv,minPolynomialOrder+1)
 
         u = np.concatenate([u,r_inv,hat],axis=1)
     
     return u
 
 
-def run_sindy(x,t,body_idx):
+def run_sindy(x,t,body_idx,
+              minPolynomialOrder=0,
+              maxPolynomialOrder=2):
     # Build a library involving vector hats and inverse powers of r
     poly_lib = ps.PolynomialLibrary(
-        degree=2,
-        include_bias=False)
+        degree=(maxPolynomialOrder-minPolynomialOrder),
+        include_bias=True)
     vectorHat_lib = ps.IdentityLibrary()
     tensorProd_lib = ps.TensoredLibrary(
         [poly_lib,vectorHat_lib],
@@ -116,7 +120,8 @@ def run_sindy(x,t,body_idx):
         axis=0)
 
     # Build the u-matrix
-    u = build_u_matrix(x,body_idx)
+    u = build_u_matrix(x,body_idx,
+                       minPolynomialOrder=minPolynomialOrder)
     
     # Build a list of libraries to pass into the generalized library
     nTraj = round(x.shape[1]/3)
@@ -196,13 +201,14 @@ def run_sindy_merge_xyz(x,t,body_idx,
     # Merge the xyz components into a single vector
     x_merged = np.ravel(x[:,3*body_idx:3*(body_idx+1)],'F')
     a_merged = compute_merged_second_derivative(x,t,body_idx)
-    u = build_u_matrix(x,body_idx)
+    u = build_u_matrix(x,body_idx,
+                       minPolynomialOrder=minPolynomialOrder)
     u_merged = build_merged_u_matrix(u)
 
     # Build a library involving vector hats and inverse powers of r
     poly_lib = ps.PolynomialLibrary(
-        degree=1,
-        include_bias=False)
+        degree=maxPolynomialOrder-minPolynomialOrder,
+        include_bias=True)
     vectorHat_lib = ps.IdentityLibrary()
     tensorProd_lib = ps.TensoredLibrary(
         [poly_lib,vectorHat_lib],
