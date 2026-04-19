@@ -9,7 +9,8 @@ def run_centralforce_sindy(trajectory_filename,
                            doMerged=True,
                            doUnmerged=False,
                            maxPolynomialOrder=2,
-                           minPolynomialOrder=2):
+                           minPolynomialOrder=2,
+                           loudMode=False):
     
     """
     trajectory_filename: the name of the data file to parse
@@ -36,15 +37,25 @@ def run_centralforce_sindy(trajectory_filename,
         print(drop_cols)
         x = np.delete(x,drop_cols,axis=1)
 
+    coefficients = []
     for i in range(nTraj-len(excludeCols)):
+        coefficients_thisTraj = []
         if doMerged:
-            run_sindy_merge_xyz(x,t,i,
+            coefficients_thisTraj.append(
+                run_sindy_merge_xyz(x,t,i,
                                 minPolynomialOrder=minPolynomialOrder,
-                                maxPolynomialOrder=maxPolynomialOrder)
+                                maxPolynomialOrder=maxPolynomialOrder,
+                                loudMode=loudMode)
+            )
         if doUnmerged:
-            run_sindy(x,t,i,
-                      minPolynomialOrder=minPolynomialOrder,
-                      maxPolynomialOrder=maxPolynomialOrder)
+            coefficients_thisTraj = coefficients_thisTraj + run_sindy(
+                x,t,i,
+                minPolynomialOrder=minPolynomialOrder,
+                maxPolynomialOrder=maxPolynomialOrder,
+                loudMode=loudMode)
+            
+        coefficients.append(coefficients_thisTraj)
+    return coefficients
 
 # Unpacks MATLAB data from a .mat file
 def unpack_matlab_data(trajectory_filename):
@@ -102,7 +113,8 @@ def build_u_matrix(x,body_idx,
 
 def run_sindy(x,t,body_idx,
               minPolynomialOrder=0,
-              maxPolynomialOrder=2):
+              maxPolynomialOrder=2,
+              loudMode=False):
     # Build a library involving vector hats and inverse powers of r
     poly_lib = ps.PolynomialLibrary(
         degree=(maxPolynomialOrder-minPolynomialOrder),
@@ -127,7 +139,9 @@ def run_sindy(x,t,body_idx,
     nTraj = round(x.shape[1]/3)
     libList = [tensorProd_lib]*(nTraj-1)
 
+
     # Iterate over xhat, yhat, zhat
+    coeffs =  []
     for i in range(3):
 
         # Build the inputs to create the generalized library
@@ -157,12 +171,15 @@ def run_sindy(x,t,body_idx,
             t=t,
             u=u
         )
-        model.print()
-        print(model.score(
-            x[:,(3*body_idx)+i],
-            t=t,
-            u=u))
-
+        if loudMode:
+            model.print()
+            print(model.score(
+                x[:,(3*body_idx)+i],
+                t=t,
+                u=u))
+        coeffs.append(model.coefficients())
+    
+    return coeffs
 
 # Builds a u-matrix of the form (r_ij, [x_ij,y_iij,z_ij])
 # so that we can simultaneously run SINDy on all three vector
@@ -196,7 +213,8 @@ def compute_merged_second_derivative(x,t,body_idx):
 # *** REQUIRES UNIFORMLY SPACED DATA ***
 def run_sindy_merge_xyz(x,t,body_idx,
                         maxPolynomialOrder=2,
-                        minPolynomialOrder=2):
+                        minPolynomialOrder=2,
+                        loudMode=False):
     
     # Merge the xyz components into a single vector
     x_merged = np.ravel(x[:,3*body_idx:3*(body_idx+1)],'F')
@@ -234,7 +252,7 @@ def run_sindy_merge_xyz(x,t,body_idx,
     #                                 normalize_columns=False,
     #                                 verbose=True
     # )
-    optimizer = ps.optimizers.STLSQ(alpha=0,threshold=0,verbose=True)
+    optimizer = ps.optimizers.STLSQ(alpha=0,threshold=0,verbose=loudMode)
     model = ps.SINDy(
         feature_library=lib,
         optimizer=optimizer,
@@ -246,11 +264,16 @@ def run_sindy_merge_xyz(x,t,body_idx,
         u=u_merged,
         x_dot=a_merged
     )
-    model.print()
-    print(model.score(
-        x_merged,
-        t=abs(t[1]-t[0]),
-        u=u_merged,
-        x_dot=a_merged))
+
+    if loudMode:
+        model.print()
+        print(model.score(
+            x_merged,
+            t=abs(t[1]-t[0]),
+            u=u_merged,
+            x_dot=a_merged))
+    
+    return model.coefficients()
+
 
     
